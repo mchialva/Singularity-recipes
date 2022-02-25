@@ -1,0 +1,44 @@
+Bootstrap: docker
+From: ubuntu:18.04
+# usage with binded data path with indexed profiles: > singularity exec --bind /home/user/interproscan-5.52-86.0/data:/usr/local/src/interproscan-5.52-86.0/data my_iprscan-5.52-86.0.sif interproscan.sh
+
+%environment
+PATH=/usr/local/src/interproscan-5.52-86.0:$PATH
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
+%files
+
+    /home/user/interproscan-5.52-86.0-64-bit.tar.gz /usr/local/src
+
+%post
+sed -i "s/archive.ubuntu/de.archive.ubuntu/" /etc/apt/sources.list && \
+sed -i "s/security.ubuntu/de.security.ubuntu/" /etc/apt/sources.list && \
+apt-get update
+apt-get dist-upgrade -y 
+apt-get install wget python python3 build-essential unzip libdw1 git gfortran cmake openjdk-11-jre -y 
+rm -rf /var/lib/apt/lists/*
+mkdir -p /usr/local/src
+cd /usr/local/src && \
+#wget -c http://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.52-86.0/interproscan-5.52-86.0-64-bit.tar.gz -O interproscan-5.52-86.0-64-bit.tar.gz && \
+tar xf interproscan-5.52-86.0-64-bit.tar.gz --exclude "interproscan-5.52-86.0/data" && \
+rm interproscan-5.52-86.0-64-bit.tar.gz
+
+wget -c https://github.com/sib-swiss/pftools3/archive/refs/tags/v3.2.6.tar.gz
+tar -xzvf v3.2.6.tar.gz
+cd pftools3-3.2.6/
+mkdir build
+cd build/
+cmake ..
+make
+
+mv /usr/local/src/pftools3-3.2.6/build/src/C/pfsearchV3 /usr/local/src/interproscan-5.52-86.0/bin/prosite/pfsearchV3
+mv /usr/local/src/pftools3-3.2.6/build/src/C/pfscanV3 /usr/local/src/interproscan-5.52-86.0/bin/prosite/pfscanV3
+
+chmod -R a+rx /usr/local/src/interproscan-5.52-86.0/bin
+
+#cd /usr/local/src/interproscan-5.52-86.0/; python3 initial_setup.py
+
+%labels
+MAINTAINER Matteo Chialva
+Version v0.1
